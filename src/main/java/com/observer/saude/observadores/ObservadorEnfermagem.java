@@ -25,7 +25,7 @@ public class ObservadorEnfermagem implements ObservadorComRegistro {
     private final List<Notificacao> registro = new CopyOnWriteArrayList<>();
 
     public ObservadorEnfermagem() {
-        this("Carla");
+        this("Samanta");
     }
 
     public ObservadorEnfermagem(String nomeEnfermeira) {
