@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell($j = try { \\(& java -version\\) 2>&1 | Out-String } catch { \"no java\" }; Write-Output \"JAVA:`n$j\"; $g = \\(Get-Command gradle -ErrorAction SilentlyContinue\\); if \\($g\\) { Write-Output \"GRADLE: $\\($g.Source\\)\" } else { Write-Output \"GRADLE: not found\" })",
+      "Bash(./gradlew.bat bootRun)"
+    ]
+  }
+}

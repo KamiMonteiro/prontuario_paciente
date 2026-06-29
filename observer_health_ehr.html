@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prontuário Eletrônico — padrão Observer (preview standalone)</title>
+<style>
+:root{
+  --font-mono:'JetBrains Mono','Fira Code',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --bg-page:#0e0e12; --surface-0:#141419; --surface-1:#1b1b22; --surface-2:#26262f;
+  --border:#2c2c36; --border-strong:#3a3a46; --border-accent:#3a5a8a;
+  --text-primary:#e7e7ea; --text-secondary:#a6a6b0; --text-muted:#6c6c79;
+  --bg-accent:#16243f; --text-accent:#6aa3e8;
+  --bg-success:#102a1d; --text-success:#4ed09a;
+  --bg-warning:#2f2512; --text-warning:#e2a948; --text-danger:#f0685a;
+}
+html,body{background:var(--bg-page);color-scheme:dark}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-mono,monospace);background:var(--bg-page);color:var(--text-primary);font-size:13px;line-height:1.5}
+.wrap{padding:16px;display:flex;flex-direction:column;gap:14px;max-width:920px;margin:0 auto}
+.sec-title{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.note-standalone{font-size:11px;color:var(--text-warning);background:var(--bg-warning);border:.5px solid var(--border);border-radius:6px;padding:6px 10px}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tab-btn{padding:5px 11px;border-radius:6px;border:.5px solid var(--border);background:var(--surface-1);color:var(--text-secondary);font-size:12px;cursor:pointer;font-family:var(--font-mono,monospace);transition:all .15s}
+.tab-btn:hover{background:var(--surface-2);color:var(--text-primary)}
+.tab-btn.active{background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent);font-weight:500}
+.views{display:flex;gap:6px;flex-wrap:wrap}
+.view-btn{display:flex;align-items:center;gap:7px;padding:8px 13px;border-radius:8px;border:.5px solid var(--border);background:var(--surface-1);color:var(--text-secondary);font-size:12px;cursor:pointer;font-family:var(--font-mono,monospace);transition:all .15s}
+.view-btn:hover{background:var(--surface-2);color:var(--text-primary)}
+.view-btn .dot{width:8px;height:8px;border-radius:50%;background:currentColor;opacity:.5}
+.view-btn.active{font-weight:600;background:var(--surface-2)}
+.view-btn.active .dot{opacity:1}
+.view-btn.v-med.active{color:#9a90f0;border-color:#4a3f9a}
+.view-btn.v-enf.active{color:#4ed09a;border-color:#2a6a4d}
+.view-btn.v-pac.active{color:#6aa3e8;border-color:#3a5a8a}
+.view-note{font-size:11px;color:var(--text-muted);margin-top:8px;line-height:1.6}
+.code-wrap{background:var(--surface-1);border:.5px solid var(--border);border-radius:10px;overflow:hidden}
+.code-hdr{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-bottom:.5px solid var(--border);background:var(--surface-0)}
+.code-hdr span{font-size:12px;color:var(--text-secondary)}
+.code-body{padding:14px;overflow-x:auto;max-height:400px;overflow-y:auto}
+pre{white-space:pre;font-size:12px;line-height:1.75}
+.badge{display:inline-block;padding:1px 7px;border-radius:4px;font-size:10px;font-weight:500;margin-left:6px}
+.b-sub{background:var(--bg-accent);color:var(--text-accent)}
+.b-obs{background:var(--bg-success);color:var(--text-success)}
+.b-run{background:var(--bg-warning);color:var(--text-warning)}
+.sim{background:var(--surface-1);border:.5px solid var(--border);border-radius:10px;padding:14px}
+.sim-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:10px}
+.stat-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:.5px solid var(--border)}
+.stat-row:last-child{border-bottom:none}
+.stat-row.hidden{display:none}
+.stat-lbl{color:var(--text-secondary)}
+.stat-val{font-weight:500;font-family:var(--font-mono,monospace);text-align:right}
+.stat-val.ok{color:var(--text-success)}
+.stat-val.warn{color:var(--text-warning)}
+.stat-val.crit{color:var(--text-danger)}
+.act-btn{width:100%;padding:7px 10px;border-radius:6px;border:.5px solid var(--border-strong);background:var(--surface-2);color:var(--text-primary);font-size:12px;font-family:var(--font-mono,monospace);cursor:pointer;transition:all .15s;text-align:left;margin-bottom:5px}
+.act-btn:hover{background:var(--bg-accent);border-color:var(--border-accent);color:var(--text-accent)}
+.act-btn:last-child{margin-bottom:0}
+.log-box{background:var(--surface-0);border:.5px solid var(--border);border-radius:8px;padding:10px 12px;height:170px;overflow-y:auto;font-size:11px;line-height:1.9}
+.log-box .empty{color:var(--text-muted);font-style:italic}
+.l-sub{color:#5a9adf}
+.l-enf{color:#3fcb93}
+.l-med{color:#9a90f0}
+.l-warn{color:var(--text-warning)}
+.l-crit{color:var(--text-danger)}
+.l-info{color:var(--text-muted)}
+.l-pac{color:#8fbef0}
+.l-pac-bom{color:#4ed09a}
+.l-pac-alerta{color:#e2a948}
+.kw{color:#9a90f0;font-weight:500}
+.cm{color:var(--text-muted);font-style:italic}
+.cls{color:#6aa3e8}
+.fn{color:#4ed09a}
+.str{color:#e8915a}
+.num{color:#e2a948}
+.ann{color:#9a90f0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="note-standalone">Preview standalone (simulação 100% no navegador, sem servidor). A versão conectada à API está em <b>src/main/resources/static/index.html</b> e roda com <b>gradle bootRun</b>.</div>
+
+  <div>
+    <div class="sec-title">Código-fonte</div>
+    <div class="tabs" id="tabs">
+      <button class="tab-btn active" onclick="showTab('t1')">1. IObservavel</button>
+      <button class="tab-btn" onclick="showTab('t2')">2. IObservador</button>
+      <button class="tab-btn" onclick="showTab('t3')">3. ProntuarioMedico</button>
+      <button class="tab-btn" onclick="showTab('t4')">4. Observadores</button>
+      <button class="tab-btn" onclick="showTab('t5')">5. Controlador</button>
+    </div>
+  </div>
+
+  <div class="code-wrap">
+    <div class="code-hdr">
+      <span id="code-lbl">IObservavel.java <span class="badge b-sub">interface</span></span>
+      <span id="code-desc" style="font-size:11px">Contrato do Sujeito</span>
+    </div>
+    <div class="code-body"><pre id="code-out"></pre></div>
+  </div>
+
+  <div class="sim">
+    <div class="sec-title">Simulação — prontuário da paciente Ana Lima</div>
+
+    <div>
+      <div class="sec-title" style="margin-bottom:6px">Perspectiva (Observador ativo)</div>
+      <div class="views" id="views">
+        <button class="view-btn v-med"   onclick="setView('medico')"><span class="dot"></span>Médico</button>
+        <button class="view-btn v-enf active" onclick="setView('enfermeira')"><span class="dot"></span>Enfermeira</button>
+        <button class="view-btn v-pac"   onclick="setView('paciente')"><span class="dot"></span>Paciente</button>
+      </div>
+      <div class="view-note" id="view-note"></div>
+    </div>
+
+    <div class="sim-grid">
+      <div>
+        <div class="stat-row"><span class="stat-lbl">Pressão arterial</span><span class="stat-val" id="s-bp">120/80 mmHg</span></div>
+        <div class="stat-row"><span class="stat-lbl">Frequência cardíaca</span><span class="stat-val" id="s-hr">72 bpm</span></div>
+        <div class="stat-row"><span class="stat-lbl">Temperatura</span><span class="stat-val" id="s-temp">36.5 °C</span></div>
+        <div class="stat-row"><span class="stat-lbl">SpO2</span><span class="stat-val" id="s-spo2">98%</span></div>
+        <div class="stat-row" data-role="clinico"><span class="stat-lbl" id="lbl-med">Medicação ativa</span><span class="stat-val" id="s-med">Nenhuma</span></div>
+        <div class="stat-row" data-role="clinico"><span class="stat-lbl" id="lbl-diag">Diagnóstico</span><span class="stat-val" id="s-diag">Em avaliação</span></div>
+      </div>
+      <div>
+        <button class="act-btn" onclick="act('hiper')">Registrar hipertensão (180/110)</button>
+        <button class="act-btn" onclick="act('taqui')">Registrar taquicardia (128 bpm)</button>
+        <button class="act-btn" onclick="act('febre')">Registrar febre (39.2 °C)</button>
+        <button class="act-btn" onclick="act('hipoxia')">Registrar hipóxia (SpO2 88%)</button>
+        <button class="act-btn" onclick="act('medicar')">Prescrever Losartana 50mg</button>
+        <button class="act-btn" onclick="act('diag')">Confirmar: Hipertensão Grau II</button>
+        <button class="act-btn" onclick="act('reiniciar')">Reiniciar prontuário</button>
+      </div>
+    </div>
+    <div style="margin-top:12px">
+      <div class="sec-title" style="margin-bottom:6px" id="log-title">Registro de notificações</div>
+      <div class="log-box" id="log"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── Abas de código (referência didática) ─────────────────── */
+const TABS = {
+t1:{
+  lbl:'IObservavel.java', badge:'b-sub', bTxt:'interface do Sujeito', desc:'Contrato do Sujeito — o prontuário',
+  code:`<span class="kw">public interface</span> <span class="cls">IObservavel</span> {
+    <span class="kw">void</span> <span class="fn">adicionarObservador</span>(<span class="cls">IObservador</span> observador);  <span class="cm">// GoF: Attach</span>
+    <span class="kw">void</span> <span class="fn">removerObservador</span>(<span class="cls">IObservador</span> observador);    <span class="cm">// GoF: Detach</span>
+    <span class="kw">void</span> <span class="fn">notificarObservadores</span>();                  <span class="cm">// GoF: Notify</span>
+}`
+},
+t2:{
+  lbl:'IObservador.java', badge:'b-obs', bTxt:'interface do Observador', desc:'Callback atualizar() — modelo PULL',
+  code:`<span class="kw">public interface</span> <span class="cls">IObservador</span> {
+    <span class="cm">// O Sujeito passa 'this'; cada Observador puxa só o que precisa (PULL).</span>
+    <span class="kw">void</span> <span class="fn">atualizar</span>(<span class="cls">IObservavel</span> origem);
+}`
+},
+t3:{
+  lbl:'ProntuarioMedico.java', badge:'b-sub', bTxt:'Sujeito concreto', desc:'Estado clínico — notifica a cada mutação',
+  code:`<span class="kw">public class</span> <span class="cls">ProntuarioMedico</span> <span class="kw">implements</span> <span class="cls">IObservavel</span> {
+
+    <span class="kw">private final</span> List&lt;<span class="cls">IObservador</span>&gt; observadores = <span class="kw">new</span> ArrayList&lt;&gt;();
+
+    <span class="kw">public void</span> <span class="fn">atualizarPressaoArterial</span>(<span class="kw">int</span> sis, <span class="kw">int</span> dia) {
+        <span class="kw">this</span>.sistolica = sis; <span class="kw">this</span>.diastolica = dia;
+        <span class="fn">alterou</span>(<span class="str">"PRESSAO_ARTERIAL"</span>);
+        <span class="fn">notificarObservadores</span>();   <span class="cm">// estado autoconsistente antes (Gamma 5)</span>
+    }
+
+    <span class="ann">@Override</span>
+    <span class="kw">public void</span> <span class="fn">notificarObservadores</span>() {
+        <span class="kw">for</span> (<span class="cls">IObservador</span> o : observadores) o.<span class="fn">atualizar</span>(<span class="kw">this</span>); <span class="cm">// PULL</span>
+    }
+}`
+},
+t4:{
+  lbl:'Observadores', badge:'b-obs', bTxt:'3 perspectivas', desc:'Médico, Enfermeira e Paciente — mesma notificação, reações distintas',
+  code:`<span class="kw">public class</span> <span class="cls">ObservadorEnfermagem</span> <span class="kw">implements</span> <span class="cls">IObservador</span> {
+    <span class="cm">// Lê só sinais vitais. Crise, taquicardia, febre, hipóxia → alerta.</span>
+}
+<span class="kw">public class</span> <span class="cls">ObservadorMedico</span> <span class="kw">implements</span> <span class="cls">IObservador</span> {
+    <span class="cm">// Vitais + medicação + diagnóstico → conduta clínica.</span>
+}
+<span class="kw">public class</span> <span class="cls">ObservadorPortalPaciente</span> <span class="kw">implements</span> <span class="cls">IObservador</span> {
+    <span class="cm">// Traduz tudo em linguagem simples e acolhedora — sem jargão.</span>
+}`
+},
+t5:{
+  lbl:'ControladorProntuario.java', badge:'b-run', bTxt:'controlador', desc:'Monta o Sujeito, inscreve os três Observadores e roteia as ações',
+  code:`<span class="kw">public class</span> <span class="cls">ControladorProntuario</span> {
+    <span class="kw">public</span> <span class="fn">ControladorProntuario</span>(...) {
+        prontuario.<span class="fn">adicionarObservador</span>(enfermeira);  <span class="cm">// GoF: Attach()</span>
+        prontuario.<span class="fn">adicionarObservador</span>(medico);
+        prontuario.<span class="fn">adicionarObservador</span>(paciente);
+    }
+    <span class="cm">// pressaoArterial(), frequenciaCardiaca(), ... , visao(papel)</span>
+}`
+}
+};
+
+/* ── Estado do prontuário (Sujeito) + histórico de eventos ── */
+const ESTADO = {bp:'120/80', fc:72, temp:36.5, spo2:98, med:'Nenhuma', diag:'Em avaliação'};
+const EVENTOS = []; // {campo, snap}
+let VIEW = 'enfermeira';
+
+const VIEW_META = {
+  medico:    {title:'Registro clínico — visão do Médico (Dr. CRM-12345)',
+              note:'O Observador médico acessa sinais vitais, medicação e diagnóstico, correlaciona tudo e define conduta.'},
+  enfermeira:{title:'Registro de alertas — visão da Enfermeira (Enf. Carla)',
+              note:'Lê apenas sinais vitais e sinaliza o que exige intervenção de beira de leito. Não acessa diagnóstico.'},
+  paciente:  {title:'Portal — visão da Paciente (Ana Lima)',
+              note:'Recebe a mesma notificação, mas em linguagem simples e acolhedora, sem jargão nem códigos.'}
+};
+
+/* ── Coloração dos sinais vitais ──────────────────────────── */
+function classBP(s,d){if(s>=180||d>=110)return'crit';if(s>=140||d>=90)return'warn';return'ok';}
+function classFC(h){if(h>120||h<50)return'warn';return'ok';}
+function classTemp(t){if(t>=39)return'crit';if(t>=38.5)return'warn';return'ok';}
+function classSpo2(s){if(s<90)return'crit';if(s<94)return'warn';return'ok';}
+
+/* ── Observadores (reimplementados em JS p/ a simulação) ──── */
+function reageEnfermeira(campo, snap){
+  const [s,d]=snap.bp.split('/').map(Number);
+  if(campo==='PRESSAO_ARTERIAL'){
+    if(s>=180||d>=110) return {g:'CRITICO', m:`[Enf. Carla] Crise hipertensiva: ${snap.bp} mmHg. Acionar médico.`};
+    if(s>=140||d>=90)  return {g:'ALERTA',  m:`[Enf. Carla] Pressão elevada: ${snap.bp} mmHg.`};
+    return {g:'NORMAL', m:`[Enf. Carla] Pressão registrada: ${snap.bp} mmHg — dentro do limite.`};
+  }
+  if(campo==='FREQUENCIA_CARDIACA'){
+    if(snap.fc>120) return {g:'CRITICO', m:`[Enf. Carla] Taquicardia: ${snap.fc} bpm.`};
+    if(snap.fc<50)  return {g:'CRITICO', m:`[Enf. Carla] Bradicardia: ${snap.fc} bpm.`};
+    return {g:'NORMAL', m:`[Enf. Carla] FC registrada: ${snap.fc} bpm — normal.`};
+  }
+  if(campo==='TEMPERATURA'){
+    if(snap.temp>=38.5) return {g:'ALERTA', m:`[Enf. Carla] Febre: ${snap.temp.toFixed(1)} °C. Verificar protocolo antipirético.`};
+    return {g:'NORMAL', m:`[Enf. Carla] Temperatura: ${snap.temp.toFixed(1)} °C — afebril.`};
+  }
+  if(campo==='SPO2'){
+    if(snap.spo2<92) return {g:'CRITICO', m:`[Enf. Carla] Hipóxia grave: SpO2 ${snap.spo2}%. Iniciar O2 imediatamente.`};
+    if(snap.spo2<95) return {g:'ALERTA',  m:`[Enf. Carla] SpO2 limítrofe: ${snap.spo2}%. Monitorar.`};
+    return {g:'NORMAL', m:`[Enf. Carla] SpO2: ${snap.spo2}% — adequada.`};
+  }
+  return {g:'INFO', m:'[Enf. Carla] Alteração clínica registrada (fora do escopo de enfermagem).'};
+}
+
+function reageMedico(campo, snap){
+  const [s]=snap.bp.split('/').map(Number);
+  if(campo==='PRESSAO_ARTERIAL'&&s>=180)
+    return {g:'CRITICO', m:`[Dr. CRM-12345-SP] Crise hipertensiva em Ana Lima. Diagnóstico atual: ${snap.diag}. Rever medicação: ${snap.med}.`};
+  if(campo==='MEDICACAO')
+    return {g:'NORMAL', m:`[Dr. CRM-12345-SP] Prescrição registrada para Ana Lima: ${snap.med}.`};
+  if(campo==='DIAGNOSTICO')
+    return {g:'NORMAL', m:`[Dr. CRM-12345-SP] Diagnóstico confirmado: ${snap.diag}. Plano terapêutico ativado.`};
+  return {g:'INFO', m:'[Dr. CRM-12345-SP] Sem conduta para este evento.'};
+}
+
+function reagePaciente(campo, snap){
+  const [s,d]=snap.bp.split('/').map(Number);
+  if(campo==='PRESSAO_ARTERIAL'){
+    if(s>=180||d>=110) return {g:'ALERTA', m:'Sua pressão está alta. Sua equipe já foi avisada e está cuidando de você.'};
+    if(s>=140)         return {g:'NORMAL', m:'Sua pressão está um pouco elevada. A equipe está acompanhando.'};
+    return {g:'BOM', m:'Sua pressão está dentro do normal.'};
+  }
+  if(campo==='FREQUENCIA_CARDIACA'){
+    if(snap.fc>120) return {g:'ALERTA', m:'Seus batimentos estão acelerados. A enfermagem está monitorando.'};
+    if(snap.fc<50)  return {g:'ALERTA', m:'Seus batimentos estão mais lentos que o normal. A equipe está atenta.'};
+    return {g:'BOM', m:'Seu coração está num ritmo saudável.'};
+  }
+  if(campo==='TEMPERATURA'){
+    if(snap.temp>=38.5) return {g:'ALERTA', m:'Você está com febre. A equipe vai providenciar algo para baixar a temperatura.'};
+    return {g:'BOM', m:'Sua temperatura está normal.'};
+  }
+  if(campo==='SPO2'){
+    if(snap.spo2<92) return {g:'ALERTA', m:'Seu nível de oxigênio está baixo. A equipe vai te ajudar a respirar melhor.'};
+    if(snap.spo2<95) return {g:'NORMAL', m:'Seu oxigênio está um pouco abaixo do ideal. Estão te acompanhando.'};
+    return {g:'BOM', m:'Seu oxigênio no sangue está bom.'};
+  }
+  if(campo==='MEDICACAO') return {g:'NORMAL', m:`Foi prescrito um medicamento para você: ${snap.med}. Ele ajuda a controlar sua condição.`};
+  if(campo==='DIAGNOSTICO') return {g:'NORMAL', m:`Sua equipe confirmou um diagnóstico e preparou um plano de cuidado: ${snap.diag}.`};
+  return {g:'NORMAL', m:'Suas informações de saúde foram atualizadas.'};
+}
+
+const REACAO = {medico:reageMedico, enfermeira:reageEnfermeira, paciente:reagePaciente};
+
+/* ── Render ───────────────────────────────────────────────── */
+function cssForGravidade(g){
+  if(VIEW==='paciente'){
+    if(g==='BOM') return 'l-pac-bom';
+    if(g==='ALERTA'||g==='CRITICO') return 'l-pac-alerta';
+    return 'l-pac';
+  }
+  if(g==='CRITICO') return 'l-crit';
+  if(g==='ALERTA')  return 'l-warn';
+  if(g==='INFO')    return 'l-info';
+  return VIEW==='medico' ? 'l-med' : 'l-enf';
+}
+
+function renderStats(){
+  const [s,d]=ESTADO.bp.split('/').map(Number);
+  setVal('s-bp',  ESTADO.bp+' mmHg', classBP(s,d));
+  setVal('s-hr',  ESTADO.fc+' bpm',  classFC(ESTADO.fc));
+  setVal('s-temp',ESTADO.temp.toFixed(1)+' °C', classTemp(ESTADO.temp));
+  setVal('s-spo2',ESTADO.spo2+'%',   classSpo2(ESTADO.spo2));
+  document.getElementById('s-med').textContent  = ESTADO.med;
+  document.getElementById('s-diag').textContent = ESTADO.diag;
+
+  const ocultarClinico = (VIEW==='enfermeira');
+  document.querySelectorAll('[data-role="clinico"]').forEach(r=>r.classList.toggle('hidden', ocultarClinico));
+
+  const pac = VIEW==='paciente';
+  document.getElementById('lbl-med').textContent  = pac ? 'Meu medicamento' : 'Medicação ativa';
+  document.getElementById('lbl-diag').textContent = pac ? 'Minha condição'  : 'Diagnóstico';
+}
+
+function setVal(id,text,cls){
+  const el=document.getElementById(id);
+  el.textContent=text;
+  el.className='stat-val '+cls;
+}
+
+function pushLine(box,cls,msg){
+  const s=document.createElement('span');
+  s.className=cls; s.textContent=msg;
+  box.appendChild(s);
+  box.appendChild(document.createElement('br'));
+}
+
+function renderLog(){
+  const box=document.getElementById('log');
+  box.innerHTML='';
+  if(EVENTOS.length===0){
+    pushLine(box,'empty','Nenhum evento ainda — use os botões para simular o plantão.');
+    return;
+  }
+  const reage=REACAO[VIEW];
+  EVENTOS.forEach(ev=>{
+    const r=reage(ev.campo, ev.snap);
+    if(VIEW!=='paciente') pushLine(box,'l-sub',`→ atualizar()  [campo: ${ev.campo}]`);
+    pushLine(box,cssForGravidade(r.g),'  '+r.m);
+  });
+  box.scrollTop=box.scrollHeight;
+}
+
+function renderViewChrome(){
+  const meta=VIEW_META[VIEW];
+  document.getElementById('log-title').textContent=meta.title;
+  document.getElementById('view-note').textContent=meta.note;
+  document.querySelectorAll('.view-btn').forEach(b=>{
+    b.classList.toggle('active', b.getAttribute('onclick').includes(`'${VIEW}'`));
+  });
+}
+
+function renderAll(){ renderStats(); renderLog(); renderViewChrome(); }
+function setView(v){ VIEW=v; renderAll(); }
+
+function registrar(campo){ EVENTOS.push({campo, snap:{...ESTADO}}); }
+
+function act(a){
+  if(a==='hiper'){      ESTADO.bp='180/110';            registrar('PRESSAO_ARTERIAL'); }
+  else if(a==='taqui'){ ESTADO.fc=128;                  registrar('FREQUENCIA_CARDIACA'); }
+  else if(a==='febre'){ ESTADO.temp=39.2;               registrar('TEMPERATURA'); }
+  else if(a==='hipoxia'){ESTADO.spo2=88;                registrar('SPO2'); }
+  else if(a==='medicar'){ESTADO.med='Losartana 50mg';   registrar('MEDICACAO'); }
+  else if(a==='diag'){  ESTADO.diag='Hipertensão Grau II'; registrar('DIAGNOSTICO'); }
+  else if(a==='reiniciar'){
+    ESTADO.bp='120/80'; ESTADO.fc=72; ESTADO.temp=36.5; ESTADO.spo2=98;
+    ESTADO.med='Nenhuma'; ESTADO.diag='Em avaliação';
+    EVENTOS.length=0;
+  }
+  renderAll();
+}
+
+function showTab(id){
+  const t=TABS[id];
+  document.getElementById('code-out').innerHTML=t.code;
+  document.getElementById('code-lbl').innerHTML=t.lbl+` <span class="badge ${t.badge}">${t.bTxt}</span>`;
+  document.getElementById('code-desc').textContent=t.desc;
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active',Object.keys(TABS)[i]===id);
+  });
+}
+
+showTab('t1');
+renderAll();
+</script>
+</body>
+</html>
